@@ -1,0 +1,62 @@
+services:
+  mysql:
+    container_name: springmarket-mysql
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "3]5[6[6?._+5ñSJk0-*&%SDqf"
+      MYSQL_DATABASE: "springmarket"
+    volumes:
+      - my-db:/var/lib/mysql
+    ports:
+      - 3306:3306
+    networks:
+      - spring-demo
+    restart: unless-stopped
+
+  springmarket-api:
+    container_name: springmarket-api
+    image: xedi4/springmarket
+    environment:
+      SERVER_SERVLET_CONTEXT_PATH: /api
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DATASOURCE_PASSWORD: "3]5[6[6?._+5ñSJk0-*&%SDqf"
+    networks:
+      - spring-demo
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  springmarket-angular:
+    container_name: springmarket-angular
+    image: xedi4/angular
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - spring-demo
+    depends_on:
+      - springmarket-api
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --noninteractive --webroot --webroot-path=/var/www/certbot/ --register-unsafely-without-email --agree-tos --no-eff-email -d springmarket.uksouth.cloudapp.azure.com
+    depends_on:
+      - springmarket-angular
+    networks:
+      - spring-demo
+
+networks:
+  spring-demo:
+    driver: bridge
+
+volumes:
+  my-db:
